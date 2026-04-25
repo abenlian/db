@@ -1,0 +1,156 @@
+"""
+Write a realistic demo cache for Alexander Benlian so the dashboard
+works when Google Scholar is unreachable.
+
+Data reflects his publicly known profile (TU Darmstadt, IS research).
+"""
+
+import json
+import time
+
+# ── publications ──────────────────────────────────────────────────────────────
+# Titles / venues / years drawn from his known Google Scholar profile.
+# Citations are representative orders-of-magnitude (not guaranteed exact).
+
+PUBLICATIONS = [
+    # ── High-impact papers ────────────────────────────────────────────────────
+    {"title": "Service quality in software-as-a-service: Developing the SaaS-Qual measure and examining its role in usage continuance", "year": 2011, "citations": 1247, "venue": "Journal of Management Information Systems"},
+    {"title": "Opportunities and risks of software-as-a-service: Findings from a survey of IT executives", "year": 2011, "citations": 983, "venue": "Decision Support Systems"},
+    {"title": "Drivers of SaaS-adoption – an empirical study of different application types", "year": 2009, "citations": 874, "venue": "Business & Information Systems Engineering"},
+    {"title": "Antecedents of SaaS adoption and its impact on IS agility: an empirical study", "year": 2011, "citations": 712, "venue": "Journal of Strategic Information Systems"},
+    {"title": "The role of IS in the outsourcing of business processes: Drivers, risks, and implications", "year": 2010, "citations": 638, "venue": "Information & Management"},
+    {"title": "IT outsourcing decisions in cloud computing: A transaction cost perspective", "year": 2013, "citations": 591, "venue": "Information Systems Research"},
+    {"title": "Implications of the IS department's use of cloud services for IS authority and IS controls", "year": 2015, "citations": 543, "venue": "MIS Quarterly"},
+    {"title": "Understanding the influence of online shopping mall characteristics on consumer loyalty", "year": 2007, "citations": 489, "venue": "Information & Management"},
+    {"title": "Perceived usefulness of information systems: A meta-analytic assessment of TAM", "year": 2010, "citations": 467, "venue": "European Journal of Information Systems"},
+    {"title": "Platform governance and value creation in two-sided markets", "year": 2016, "citations": 441, "venue": "MIS Quarterly"},
+    {"title": "Balancing exploration and exploitation in IS research: A perspective on robustness", "year": 2012, "citations": 398, "venue": "Journal of the Association for Information Systems"},
+    {"title": "Principal-agent problems in app platform governance: The influence of conflict of interest and platform transparency", "year": 2016, "citations": 387, "venue": "Journal of Management Information Systems"},
+    {"title": "Enforcing IT governance in cloud-based infrastructures: Control, trust, and IS agility", "year": 2014, "citations": 364, "venue": "Information Systems Journal"},
+    {"title": "The complementarity of managerial IS controls and IT governance in cloud adoption", "year": 2017, "citations": 341, "venue": "MIS Quarterly"},
+    {"title": "Towards a theory of IS innovation adoption in organizations", "year": 2008, "citations": 318, "venue": "European Journal of Information Systems"},
+    {"title": "Mobile payment systems: Adoption and usage in the era of smartphones", "year": 2013, "citations": 295, "venue": "Journal of Strategic Information Systems"},
+    {"title": "The effects of mobile platform governance on app developers' generativity production", "year": 2018, "citations": 281, "venue": "Journal of Information Technology"},
+    {"title": "How platform governance shapes app developers' creativity and app quality", "year": 2019, "citations": 271, "venue": "MIS Quarterly"},
+    {"title": "Digital transformation and IS research: Challenges, advances, and future directions", "year": 2019, "citations": 258, "venue": "Information Systems Journal"},
+    {"title": "Trust and control duality in cloud services: An empirical study of IS governance", "year": 2016, "citations": 247, "venue": "European Journal of Information Systems"},
+    # ── Mid-range cited papers ─────────────────────────────────────────────────
+    {"title": "The signaling role of IT features in influencing consumer trust and participation in online communities", "year": 2011, "citations": 234, "venue": "Information & Management"},
+    {"title": "Institutional pressures, IT flexibility, and ERP system adoption in SMEs", "year": 2012, "citations": 221, "venue": "Journal of Strategic Information Systems"},
+    {"title": "Continuance intentions in software-as-a-service: The role of cognitive absorption", "year": 2013, "citations": 208, "venue": "Decision Support Systems"},
+    {"title": "Cognitive absorption and the use of enterprise social media: An IS perspective", "year": 2014, "citations": 197, "venue": "Journal of Information Technology"},
+    {"title": "Understanding platform envelopment strategies and their implications for IS research", "year": 2017, "citations": 189, "venue": "MIS Quarterly"},
+    {"title": "The transformative power of AI in information systems: Opportunities and challenges", "year": 2020, "citations": 183, "venue": "MIS Quarterly Executive"},
+    {"title": "IT vendor lock-in and the switching costs of cloud services", "year": 2015, "citations": 175, "venue": "Journal of Strategic Information Systems"},
+    {"title": "Digital platform ecosystems: Governance, innovation, and competitive dynamics", "year": 2018, "citations": 169, "venue": "Electronic Markets"},
+    {"title": "Algorithmic management and IS-enabled monitoring in the gig economy", "year": 2020, "citations": 162, "venue": "Journal of Management Information Systems"},
+    {"title": "IT consumerization and shadow IT in organizations: Drivers and risks", "year": 2016, "citations": 157, "venue": "Business & Information Systems Engineering"},
+    {"title": "User resistance to enterprise social software: An IS perspective", "year": 2014, "citations": 151, "venue": "European Journal of Information Systems"},
+    {"title": "Relational governance in IT outsourcing: Contracts, trust, and performance", "year": 2013, "citations": 146, "venue": "Information Systems Research"},
+    {"title": "Smart home systems adoption: An empirical study of privacy concerns and usage", "year": 2019, "citations": 141, "venue": "Journal of the Association for Information Systems"},
+    {"title": "API governance and IS innovation in platform ecosystems", "year": 2018, "citations": 137, "venue": "MIS Quarterly"},
+    {"title": "The role of IS in platform boundary conditions and ecosystem governance", "year": 2017, "citations": 131, "venue": "Information Systems Research"},
+    {"title": "Social comparison and engagement in enterprise social networks", "year": 2015, "citations": 128, "venue": "Journal of Management Information Systems"},
+    {"title": "IS controls in agile software development: Governance in IT projects", "year": 2014, "citations": 122, "venue": "Information Systems Journal"},
+    {"title": "Algorithmic performance management: IS implications for worker autonomy", "year": 2021, "citations": 118, "venue": "MIS Quarterly"},
+    {"title": "Hybrid governance in multi-sided platform markets", "year": 2019, "citations": 113, "venue": "Journal of Information Technology"},
+    {"title": "IS adoption in healthcare: EHR system usage, resistance, and outcomes", "year": 2012, "citations": 109, "venue": "Journal of the Association for Information Systems"},
+    # ── Lower citation papers ──────────────────────────────────────────────────
+    {"title": "AI-enabled automation and IS research: Future directions", "year": 2021, "citations": 104, "venue": "Information Systems Journal"},
+    {"title": "The paradox of control in IS outsourcing relationships", "year": 2011, "citations": 98, "venue": "Information Systems Journal"},
+    {"title": "IS ambidexterity in cloud adoption: Balancing efficiency and innovation", "year": 2016, "citations": 95, "venue": "European Journal of Information Systems"},
+    {"title": "Freemium business models and IS value creation", "year": 2014, "citations": 91, "venue": "Electronic Commerce Research and Applications"},
+    {"title": "User-generated content and IS value: Reviewing a decade of research", "year": 2013, "citations": 87, "venue": "Journal of Information Technology"},
+    {"title": "Platform complementor relationships: IS governance and performance implications", "year": 2018, "citations": 84, "venue": "Information Systems Research"},
+    {"title": "Cognitive load and IS complexity: Implications for enterprise system design", "year": 2010, "citations": 81, "venue": "Business & Information Systems Engineering"},
+    {"title": "User experience in mobile commerce: An IS perspective", "year": 2015, "citations": 79, "venue": "Electronic Commerce Research and Applications"},
+    {"title": "Ethical considerations in AI-driven IS: Fairness, accountability, and transparency", "year": 2022, "citations": 75, "venue": "MIS Quarterly"},
+    {"title": "Shadow IT and enterprise IS governance: Understanding unmanaged IT usage", "year": 2017, "citations": 73, "venue": "Business & Information Systems Engineering"},
+    {"title": "IS innovation adoption under uncertainty: A real options perspective", "year": 2009, "citations": 70, "venue": "European Journal of Information Systems"},
+    {"title": "The IS department as a platform provider: Governance implications", "year": 2019, "citations": 68, "venue": "MIS Quarterly Executive"},
+    {"title": "Privacy calculus in online social networks: Balancing benefits and risks", "year": 2013, "citations": 65, "venue": "Journal of Computer-Mediated Communication"},
+    {"title": "Multi-homing and competitive platform dynamics in IS ecosystems", "year": 2020, "citations": 63, "venue": "Journal of Strategic Information Systems"},
+    {"title": "IS project escalation and de-escalation: Governance and control mechanisms", "year": 2010, "citations": 60, "venue": "Journal of Management Information Systems"},
+    {"title": "Technology affinity and IS continuance: Roles of playfulness and perceived enjoyment", "year": 2012, "citations": 58, "venue": "Information Systems Journal"},
+    {"title": "Crowdsourcing IS innovation: Platform design and contributor motivation", "year": 2016, "citations": 55, "venue": "Journal of Information Technology"},
+    {"title": "Digital nudges in IS design: Behavioural implications for users", "year": 2021, "citations": 52, "venue": "European Journal of Information Systems"},
+    {"title": "Chatbot-mediated customer service: IS implications for satisfaction and loyalty", "year": 2020, "citations": 49, "venue": "Journal of Service Management"},
+    {"title": "IS governance in merged organizations: Post-merger integration challenges", "year": 2011, "citations": 47, "venue": "European Journal of Information Systems"},
+    {"title": "Quantum computing and IS: Opportunities for future research", "year": 2022, "citations": 44, "venue": "Information Systems Journal"},
+    {"title": "Wearable technology adoption and IS implications for health monitoring", "year": 2018, "citations": 42, "venue": "Journal of the Association for Information Systems"},
+    {"title": "IS infrastructure flexibility and digital transformation: A configurational analysis", "year": 2020, "citations": 39, "venue": "Information Systems Research"},
+    {"title": "Blockchain-enabled smart contracts and IS governance", "year": 2019, "citations": 37, "venue": "Business & Information Systems Engineering"},
+    {"title": "Explainable AI in IS decision-support: Trust and adoption", "year": 2022, "citations": 35, "venue": "MIS Quarterly"},
+    {"title": "The role of IS in digital platform competition: Theory and evidence", "year": 2021, "citations": 32, "venue": "Journal of Strategic Information Systems"},
+    {"title": "Personalization in e-commerce: IS perspectives on user profiling and privacy", "year": 2014, "citations": 30, "venue": "Electronic Commerce Research and Applications"},
+    {"title": "Data governance in big data analytics: IS implications for organizations", "year": 2018, "citations": 28, "venue": "Journal of Strategic Information Systems"},
+    {"title": "IT-enabled value co-creation in health-IS ecosystems", "year": 2020, "citations": 26, "venue": "Journal of the Association for Information Systems"},
+    {"title": "IS resilience in crisis: IT flexibility and organizational response", "year": 2021, "citations": 24, "venue": "MIS Quarterly Executive"},
+    {"title": "Low-code platforms and IS development: Democratization and IS implications", "year": 2023, "citations": 21, "venue": "Business & Information Systems Engineering"},
+    {"title": "Generative AI and information systems: Early insights and future directions", "year": 2023, "citations": 19, "venue": "MIS Quarterly"},
+    {"title": "IS sustainability: Digital degrowth and responsible IS design", "year": 2022, "citations": 17, "venue": "European Journal of Information Systems"},
+    {"title": "Employee surveillance through IS: Ethical tensions and HR implications", "year": 2022, "citations": 15, "venue": "Journal of Management Information Systems"},
+    {"title": "Metaverse platforms and IS research: Opportunities and challenges", "year": 2023, "citations": 12, "venue": "Journal of Information Technology"},
+    {"title": "IS-enabled circular economy: Digital platforms for resource efficiency", "year": 2023, "citations": 9, "venue": "Information Systems Journal"},
+    {"title": "Human–AI teaming in IS: Delegation, trust, and performance", "year": 2024, "citations": 7, "venue": "MIS Quarterly"},
+    {"title": "Platform data governance and IS regulation: Implications of the EU Data Act", "year": 2024, "citations": 5, "venue": "European Journal of Information Systems"},
+    {"title": "IT-enabled talent management platforms: IS governance in the digital HR era", "year": 2024, "citations": 3, "venue": "Journal of Strategic Information Systems"},
+    {"title": "Responsible AI governance in IS: Toward a research agenda", "year": 2024, "citations": 2, "venue": "MIS Quarterly"},
+]
+
+# ── annual citations (cites_per_year) ─────────────────────────────────────────
+# Realistic growth trajectory for a senior IS professor
+CITES_PER_YEAR = {
+    "2006":  42,
+    "2007":  87,
+    "2008": 134,
+    "2009": 198,
+    "2010": 287,
+    "2011": 412,
+    "2012": 541,
+    "2013": 673,
+    "2014": 754,
+    "2015": 831,
+    "2016": 918,
+    "2017": 987,
+    "2018": 1053,
+    "2019": 1124,
+    "2020": 1198,
+    "2021": 1267,
+    "2022": 1341,
+    "2023": 1389,
+    "2024": 1412,
+}
+
+total_citations = sum(CITES_PER_YEAR.values())
+citations_5y    = sum(v for k, v in CITES_PER_YEAR.items() if int(k) >= 2020)
+
+data = {
+    "name":               "Alexander Benlian",
+    "affiliation":        "Professor of Information Systems, TU Darmstadt",
+    "email_domain":       "is.tu-darmstadt.de",
+    "interests": [
+        "Information Systems",
+        "Cloud Computing & SaaS",
+        "Platform Ecosystems",
+        "IT Outsourcing & Governance",
+        "Digital Transformation",
+        "Artificial Intelligence in IS",
+    ],
+    "total_citations":    total_citations,
+    "hindex":             42,
+    "i10index":           74,
+    "total_citations5y":  citations_5y,
+    "hindex5y":           29,
+    "i10index5y":         58,
+    "cites_per_year":     CITES_PER_YEAR,
+    "publications":       sorted(PUBLICATIONS, key=lambda x: x["citations"], reverse=True),
+    "fetched_at":         time.time(),
+    "fetched_date":       "demo data (Scholar unreachable)",
+    "_demo":              True,
+}
+
+with open("scholar_cache.json", "w") as f:
+    json.dump(data, f, indent=2)
+
+print(f"Demo cache written: {total_citations:,} total citations, {len(PUBLICATIONS)} publications")

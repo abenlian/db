@@ -297,6 +297,15 @@ def main() -> None:
     cite_df = build_citation_df(data["cites_per_year"])
     pub_df  = build_pub_df(data["publications"])
 
+    # ── demo-mode banner ───────────────────────────────────────────────────────
+    if data.get("_demo"):
+        st.warning(
+            "**Demo mode** — Google Scholar is unreachable from this environment. "
+            "Displaying representative data. Click **Refresh** in the sidebar once "
+            "network access to Scholar is available.",
+            icon="⚠️",
+        )
+
     # ── header ─────────────────────────────────────────────────────────────────
     st.title(f"📚 {data['name']}")
     if data.get("affiliation"):
