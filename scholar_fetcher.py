@@ -86,6 +86,9 @@ def save_cache(data: dict) -> None:
         json.dump(data, f, indent=2)
 
 
+SCHOLAR_ID = "_X39PbsAAAAJ"  # Alexander Benlian's Google Scholar user ID
+
+
 def fetch_author_data(
     author_name: str = "Alexander Benlian",
     force_refresh: bool = False,
@@ -93,7 +96,8 @@ def fetch_author_data(
     """
     Return Google Scholar metrics for *author_name*.
 
-    Uses a 24-hour JSON cache.  Set force_refresh=True to bypass it.
+    Tries fetching by Scholar ID first (more reliable), then falls back to
+    name search.  Uses a 24-hour JSON cache; set force_refresh=True to bypass.
     Raises RuntimeError when scraping fails and no cache exists.
     """
     if not force_refresh:
@@ -104,7 +108,12 @@ def fetch_author_data(
     try:
         from scholarly import scholarly as _s  # type: ignore
 
-        author_stub = next(_s.search_author(author_name))
+        # Prefer direct ID lookup — faster and more precise
+        try:
+            author_stub = _s.search_author_id(SCHOLAR_ID)
+        except Exception:
+            author_stub = next(_s.search_author(author_name))
+
         author = _s.fill(
             author_stub,
             sections=["basics", "indices", "counts", "publications"],
